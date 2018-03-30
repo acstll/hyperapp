@@ -1,36 +1,30 @@
-import { h, app } from "../src"
+/* global expect, test */
+
+import { app } from '../src'
 
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 50))
 
-beforeEach(() => {
-  document.body.innerHTML = ""
-})
-
-test("sync updates", done => {
-  const state = {
+test('sync updates', done => {
+  const initialState = {
     value: 1
   }
-
   const actions = {
     up: () => state => ({ value: state.value + 1 })
   }
 
-  const view = state => (
-    <div
-      oncreate={() => {
-        expect(document.body.innerHTML).toBe(`<div>2</div>`)
-        done()
-      }}
-    >
-      {state.value}
-    </div>
-  )
+  const store = app(initialState, actions)
 
-  app(state, actions, view, document.body).up()
+  store.listen(state => {
+    expect(state.value).toBe(2)
+    done()
+  })
+
+  store.up()
+  expect(initialState.value).toBe(1)
 })
 
-test("async updates", done => {
-  const state = {
+test('async updates', done => {
+  const initialState = {
     value: 2
   }
 
@@ -40,25 +34,20 @@ test("async updates", done => {
       mockDelay().then(() => actions.up(data))
   }
 
-  const view = state => (
-    <div
-      oncreate={() => {
-        expect(document.body.innerHTML).toBe(`<div>2</div>`)
-      }}
-      onupdate={() => {
-        expect(document.body.innerHTML).toBe(`<div>3</div>`)
-        done()
-      }}
-    >
-      {state.value}
-    </div>
-  )
+  const store = app(initialState, actions)
 
-  app(state, actions, view, document.body).upAsync(1)
+  store.upAsync(1)
+
+  expect(store.getState().value).toBe(2)
+
+  store.listen(state => {
+    expect(state.value).toBe(3)
+    done()
+  })
 })
 
-test("call action within action", done => {
-  const state = {
+test('call action within action', done => {
+  const initialState = {
     value: 1
   }
 
@@ -74,20 +63,14 @@ test("call action within action", done => {
     })
   }
 
-  const view = state => (
-    <div
-      oncreate={() => {
-        expect(state).toEqual({
-          value: 2,
-          foo: true
-        })
-        expect(document.body.innerHTML).toBe(`<div>2</div>`)
-        done()
-      }}
-    >
-      {state.value}
-    </div>
-  )
+  const store = app(initialState, actions)
 
-  app(state, actions, view, document.body).upAndFoo()
+  store.upAndFoo()
+
+  expect(store.getState()).toEqual({
+    value: 2,
+    foo: true
+  })
+
+  done()
 })
